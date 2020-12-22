@@ -44,7 +44,10 @@ const nvmeHostTxtParse = (txt) => {
 
                 case "body":
                     if (line !== "") {
-                        let item = data.reduce((obj, val, i) => {obj[headers[i]] = val; return obj}, {});
+                        // let item = data.reduce((obj, val, i) => {obj[headers[i]] = val; return obj}, {});
+                        const item = {};
+                        for (let i=0; i<headers.length; i++) item[headers[i]] = data[i] || "";
+                        // console.log("line", item, data);
                         if (item.DATA.startsWith("----")) {
                             item.DATA = [item["CMD/REG_DATA"]];
                             item._DCNT_ = 1;

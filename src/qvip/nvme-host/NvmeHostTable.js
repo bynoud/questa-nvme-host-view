@@ -290,13 +290,18 @@ function Table1({ columns, data }) {
 }
 
 // Create a default prop getter
-const defaultPropGetter = (...args) => {console.log("PropGet", ...args); return {}};
+// const defaultPropGetter = (...args) => {console.log("PropGet", ...args); return {}};
+const defaultPropGetter = () => ({});
 
 
 function Table({ columns, data,
-    getColumnProps = (...args) => defaultPropGetter("Col", ...args),
-    getRowProps = (...args) => defaultPropGetter("Row", ...args),
-    getCellProps = (...args) => defaultPropGetter("Cell", ...args), }) {
+    // getColumnProps = (...args) => defaultPropGetter("Col", ...args),
+    // getRowProps = (...args) => defaultPropGetter("Row", ...args),
+    // getCellProps = (...args) => defaultPropGetter("Cell", ...args),
+    getColumnProps = defaultPropGetter,
+    getRowProps = defaultPropGetter,
+    getCellProps = defaultPropGetter,
+}) {
     const defaultColumn = React.useMemo(
         () => ({
             minWidth: 30,
