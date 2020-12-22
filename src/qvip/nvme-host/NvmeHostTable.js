@@ -18,6 +18,28 @@ const InitHiddenColumns = [
     "END TIME"
 ];
 
+const initFilterableHeader = ["BDF", "SRC", "RW", "TYPE"];
+
+const initColumnWidth = {
+    "BDF": 80,
+    "SRC": 60,
+    "RW": 60,
+    "TYPE": 85,
+    "REG_NAME/QENTRY": 100,
+    "ADDR": 180,
+    "NSID": 95,
+    "DATA": 140,
+    "__default__": 150,
+}
+
+// FIXME: should use raqndomize, current palete got from https://coolors.co/palettes/trending
+const lightColors = ["#FFBABA", "#FFDCB2", "#FDFFC3", "#D1FFC7", "#A9F8FF", "#AECDFF", "#C8BFFF", "#FFD0FF", "#FFFFFB"];
+
+const textColors = {
+    "REG": "#e63946",
+    "__default__": "#14213d",
+}
+
 const Styles = styled.div`
     padding: 1rem;
 
@@ -267,7 +289,14 @@ function Table1({ columns, data }) {
     )
 }
 
-function Table({ columns, data }) {
+// Create a default prop getter
+const defaultPropGetter = (...args) => {console.log("PropGet", ...args); return {}};
+
+
+function Table({ columns, data,
+    getColumnProps = (...args) => defaultPropGetter("Col", ...args),
+    getRowProps = (...args) => defaultPropGetter("Row", ...args),
+    getCellProps = (...args) => defaultPropGetter("Cell", ...args), }) {
     const defaultColumn = React.useMemo(
         () => ({
             minWidth: 30,
@@ -337,10 +366,17 @@ function Table({ columns, data }) {
                 {rows.map((row, i) => {
                     prepareRow(row)
                     return (
-                    <div {...row.getRowProps()} className="tr">
+                    <div {...row.getRowProps(getRowProps(row))} className="tr">
                         {row.cells.map(cell => {
                         return (
-                            <div {...cell.getCellProps()} className="td">
+                            <div {...cell.getCellProps([
+                                {
+                                  className: cell.column.className,
+                                  style: cell.column.style,
+                                },
+                                getColumnProps(cell.column),
+                                getCellProps(cell),
+                              ])} className="td">
                             {cell.render('Cell')}
                             </div>
                         )
@@ -356,19 +392,6 @@ function Table({ columns, data }) {
             </pre>
         </>
     )
-}
-
-const initFilterableHeader = ["BDF", "SRC", "RW", "TYPE"];
-const initColumnWidth = {
-    "BDF": 80,
-    "SRC": 60,
-    "RW": 60,
-    "TYPE": 85,
-    "REG_NAME/QENTRY": 100,
-    "ADDR": 180,
-    "NSID": 95,
-    "DATA": 140,
-    "__default__": 150,
 }
 
 const NvmeHostTable = ({desc, headers, items}) => {
@@ -390,8 +413,20 @@ const NvmeHostTable = ({desc, headers, items}) => {
 
     const data = React.useMemo(() => items, []);
 
+    const uDbf = new Set();
+    const bgrColor = {};
+    for (let item of items) uDbf.add(item["BDF"]);
+    uDbf.forEach((bdf,i) => bgrColor[bdf] = lightColors[i%lightColors.length]);
+
     return <Styles>
-        <Table columns={columns} data={data}></Table>
+        <Table columns={columns} data={data}
+            getRowProps={(row) => ({
+                style: {
+                    background: bgrColor[row.values["BDF"]],
+                    color: textColors[row.values["TYPE"]] || textColors["__default__"],
+                }
+            })}
+        ></Table>
     </Styles>
 }
 
