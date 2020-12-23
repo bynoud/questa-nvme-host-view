@@ -77,7 +77,7 @@ const Styles = styled.div`
             }
             .resizer {
                 display: inline-block;
-                background: blue;
+                // background: blue;
                 width: 10px;
                 height: 100%;
                 position: absolute;
@@ -150,6 +150,60 @@ function SelectColumnFilter({
     )
 }
 
+function PopupMultiSelectFilter({
+    column: { filterValue, setFilter, preFilteredRows, id },
+}) {
+    // Calculate the options for filtering
+    // using the preFilteredRows
+    const options = React.useMemo(() => {
+        const options = new Set()
+        preFilteredRows.forEach(row => {
+            options.add(row.values[id])
+        })
+        const optVals = [...options.values()];
+        return {allOpt: optVals, filterOpt: optVals.reduce((obj,v) => (obj[v]=false, obj), {})}
+    }, [id, preFilteredRows])
+
+    const [showOpt, setShowOpt] = React.useState(false);
+    let dropdownMenu = null;
+    const disableOpt = (event) => {
+        if (dropdownMenu !== null && !dropdownMenu.contains(event.target)) {
+            setShowOpt(false);
+            document.removeEventListener('click', disableOpt);
+        }
+    };
+    const enableOpt = (event) => {
+        setShowOpt(true);
+        // event.preventDefault();
+        document.addEventListener('click', disableOpt);
+    };
+    
+  
+    // Render a multi-select box
+    return (
+        <div className="FilterGroup">
+            <button onClick={enableOpt}>Filter</button>
+            {!showOpt ? null :
+            <div className="FilterOptions" ref={(element) => {dropdownMenu = element}}>
+                {options.allOpt.map((option,i) => <label  key={i} style={{display: "block", textAlign: "left"}}>
+                    <input type="checkbox" value={option}
+                        checked={options.filterOpt[option]}
+                        onChange={e => {
+                            options.filterOpt[option] = e.target.checked;
+                            let filterValues = options.allOpt.reduce((arr,v) => {
+                                if (options.filterOpt[v]) arr.push(v);
+                                return arr;
+                            }, []);
+                            console.log("FF", options, filterValues);
+                            setFilter(filterValues.length===0 ? undefined : filterValues);
+                        }}
+                    ></input>{option}
+                </label>)}
+            </div>}
+        </div>
+    )
+}
+
 
 // Create a default prop getter
 // const defaultPropGetter = (...args) => {console.log("PropGet", ...args); return {}};
@@ -209,7 +263,7 @@ function Table({ columns, data,
             <button onClick={resetResizing}>Reset Resizing</button>
             <div>
             <div {...getTableProps()} className="table">
-                <div>
+                <div style={{position:"sticky", top:0, background:"white", zIndex:1000}}>
                 {headerGroups.map(headerGroup => (
                     <div {...headerGroup.getHeaderGroupProps()} className="tr">
                     {headerGroup.headers.map(column => (
@@ -237,15 +291,16 @@ function Table({ columns, data,
                         {row.cells.map(cell => {
                         return (
                             <div {...cell.getCellProps([
-                                {
-                                  className: cell.column.className,
-                                  style: cell.column.style,
-                                },
-                                getColumnProps(cell.column),
-                                getCellProps(cell),
-                              ])} className="td">
-                            {cell.render('Cell')}
+                                    {
+                                        className: cell.column.className,
+                                        style: cell.column.style,
+                                    },
+                                    getColumnProps(cell.column),
+                                    getCellProps(cell),
+                                ])} className="td">
+                                {cell.render('Cell')}
                             </div>
+                            
                         )
                         })}
                     </div>
@@ -271,7 +326,7 @@ const NvmeHostTable = ({desc, headers, items}) => {
         return {
             Header: val,
             accessor: val,
-            Filter: SelectColumnFilter,
+            Filter: PopupMultiSelectFilter,
             filter: 'includesSome',
             disableFilters: !filterableHeader[val],
             width: (val in initColumnWidth) ? initColumnWidth[val] : initColumnWidth["__default__"],
