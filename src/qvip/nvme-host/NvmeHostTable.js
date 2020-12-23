@@ -2,7 +2,6 @@ import React from 'react'
 import styled from 'styled-components';
 import { useTable, useFilters, useColumnOrder,
          useBlockLayout, useResizeColumns } from 'react-table';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const InitHiddenColumns = [
     "DEBUG ID",
@@ -28,7 +27,7 @@ const initColumnWidth = {
     "REG_NAME/QENTRY": 100,
     "ADDR": 180,
     "NSID": 95,
-    "DATA": 140,
+    "DATA": 200,
     "__default__": 150,
 }
 
@@ -47,6 +46,8 @@ const Styles = styled.div`
         display: inline-block;
         border-spacing: 0;
         border: 1px solid black;
+        font-family: monospace;
+        font-size: larger;
 
         .tr {
             :last-child {
@@ -128,21 +129,6 @@ function SelectColumnFilter({
   
     // Render a multi-select box
     return (
-    //     <select
-    //         value={filterValue}
-    //         onChange={e => {
-    //             // setFilter(e.target.value || undefined)
-    //             setFilter([e.target.value, "REG"])
-    //         }}
-    //     >
-    //     <option value="">All</option>
-    //     {options.map((option, i) => (
-    //       <option key={i} value={option}>
-    //         {option}
-    //       </option>
-    //     ))}
-    //   </select>
-
         <div className="FilterGroup">
             {options.allOpt.map((option,i) => <label  key={i}>
                 <input type="checkbox" value={option}
@@ -162,132 +148,6 @@ function SelectColumnFilter({
     )
 }
 
-function shuffle(arr) {
-    arr = [...arr]
-    const shuffled = []
-    while (arr.length) {
-        const rand = Math.floor(Math.random() * arr.length)
-        shuffled.push(arr.splice(rand, 1)[0])
-    }
-    return shuffled
-}
-
-function Table1({ columns, data }) {
-    const defaultColumn = React.useMemo(
-        () => ({
-            // Let's set up our default Filter UI
-            Filter: DefaultColumnFilter,
-        }),
-        []
-    )
-  
-    const {
-        getTableProps,
-        getTableBodyProps,
-        headerGroups,
-        rows,
-        visibleColumns,
-        prepareRow,
-        allColumns,
-        setColumnOrder,
-        state,
-    } = useTable(
-      {
-        columns,
-        data,
-        defaultColumn,
-        initialState: {hiddenColumns: InitHiddenColumns}
-      },
-      useColumnOrder,
-      useFilters,
-    //   useSortBy
-    )
-  
-    const spring = React.useMemo(
-      () => ({
-        type: 'spring',
-        damping: 50,
-        stiffness: 100,
-      }),
-      []
-    )
-  
-    const randomizeColumns = () => {
-      setColumnOrder(shuffle(visibleColumns.map(d => d.id)))
-    }
-  
-    return (
-        <>
-            {/* <button onClick={() => randomizeColumns({})}>Randomize Columns</button> */}
-            <div className="globalOptions">
-                {allColumns.map(column => <div key={column.id}>
-                    <label><input type="checkbox" {...column.getToggleHiddenProps()}/>{column.id}</label>
-                </div>)}
-            </div>
-
-            <table {...getTableProps()}>
-            <thead>
-                {headerGroups.map((headerGroup, i) => (
-                <tr {...headerGroup.getHeaderGroupProps()}>
-                    {headerGroup.headers.map(column => (
-                    <motion.th
-                        {...column.getHeaderProps({
-                        layoutTransition: spring,
-                        style: {
-                            minWidth: column.minWidth,
-                        },
-                        })}
-                    >
-                        {/* <div {...column.getSortByToggleProps()}> */}
-                        {column.render('Header')}
-                        {/* <span>
-                            {column.isSorted
-                            ? column.isSortedDesc
-                                ? ' 🔽'
-                                : ' 🔼'
-                            : ''}
-                        </span> */}
-                        {/* </div> */}
-                        <div>{column.canFilter ? column.render('Filter') : null}</div>
-                    </motion.th>
-                    ))}
-                </tr>
-                ))}
-            </thead>
-            <tbody {...getTableBodyProps()}>
-                <AnimatePresence>
-                {rows.map((row, i) => {
-                    prepareRow(row)
-                    return (
-                    <motion.tr
-                        {...row.getRowProps({
-                        layoutTransition: spring,
-                        exit: { opacity: 0, maxHeight: 0 },
-                        })}
-                    >
-                        {row.cells.map((cell, i) => {
-                        return (
-                            <motion.td
-                            {...cell.getCellProps({
-                                layoutTransition: spring,
-                            })}
-                            >
-                            {cell.render('Cell')}
-                            </motion.td>
-                        )
-                        })}
-                    </motion.tr>
-                    )
-                })}
-                </AnimatePresence>
-            </tbody>
-            </table>
-            <pre>
-            <code>{JSON.stringify(state, null, 2)}</code>
-            </pre>
-        </>
-    )
-}
 
 // Create a default prop getter
 // const defaultPropGetter = (...args) => {console.log("PropGet", ...args); return {}};
@@ -414,9 +274,9 @@ const NvmeHostTable = ({desc, headers, items}) => {
             disableFilters: !filterableHeader[val],
             width: (val in initColumnWidth) ? initColumnWidth[val] : initColumnWidth["__default__"],
         }
-    }), [filterableHeader]);
+    }), [filterableHeader, headers]);
 
-    const data = React.useMemo(() => items, []);
+    const data = React.useMemo(() => items, [items]);
 
     const uDbf = new Set();
     const bgrColor = {};

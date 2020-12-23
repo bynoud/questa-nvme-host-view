@@ -2,7 +2,7 @@
 const headerLine = "------------------------------------------";
 
 // return (desc, headers, items)
-const nvmeHostTxtParse = (txt) => {
+const nvmeHostTxtParse = (txt, {maxDataCnt=4}={}) => {
     //console.log("_parse", txt);
     let lines = txt.split('\n');
     let curPos = "init";
@@ -11,7 +11,8 @@ const nvmeHostTxtParse = (txt) => {
     let headers = [];
     let descriptor = {};
     let items = [];
-    let itemTypes = [];
+    let dataCnt = 0;
+
     for (let linei=0; linei<lines.length; linei++) {
         let line = lines[linei];
         let data = line.split('|').map((v) => v.trim())
@@ -49,26 +50,27 @@ const nvmeHostTxtParse = (txt) => {
                         for (let i=0; i<headers.length; i++) item[headers[i]] = data[i] || "";
                         // console.log("line", item, data);
                         if (item.DATA.startsWith("----")) {
-                            item.DATA = [item["CMD/REG_DATA"]];
-                            item._DCNT_ = 1;
-                            // item.DATA = item["CMD/REG_DATA"];
+                            // item.DATA = [item["CMD/REG_DATA"]];
+                            item.DATA = item["CMD/REG_DATA"];
                         } else {
-                            item.DATA = [item.DATA.split("-")[1]];
-                            item._DCNT_ = 1;
-                            // item.DATA = item.DATA.split("-")[1];
+                            // item.DATA = [item.DATA.split("-")[1]];
+                            item.DATA = item.DATA.split("-")[1];
                         }
-                        if (item.TYPE === "" && item.DATA.length > 0) {
-                        // if (item.TYPE === "" && item.DATA !== "") {
-                            curItem.DATA.push(item.DATA[0]);
-                            curItem._DCNT_++;
+                        // if (item.TYPE === "" && item.DATA.length > 0) {
+                        if (item.TYPE === "" && item.DATA !== "" && curItem !== null) {
+                            // curItem.DATA.push(item.DATA[0]);
+                            dataCnt++;
                             // if (dataCnt == 8) { curItem.DATA = "<div>"+curItem.DATA+"</div>"; dataCnt = 0; }
-                            // dataCnt++;
-                            // curItem.DATA = item.DATA + " " + curItem.DATA;
+                            if (dataCnt <= maxDataCnt) curItem.DATA += " " + item.DATA;
                             // console.log(curItem.DATA, dataCnt)
                         } else {
+                            if (curItem !== null) {
+                                if (dataCnt > maxDataCnt) curItem.DATA += ` (...${dataCnt})`;
+                                items.push(curItem);
+                            }
                             curItem = item;
-                            if (!itemTypes.includes(item.TYPE)) itemTypes.push(item.TYPE);
-                            items.push(item);
+                            dataCnt = 1;
+                            // items.push(item);
                         }
                     }
                     break;
@@ -79,6 +81,11 @@ const nvmeHostTxtParse = (txt) => {
 
 
         }
+    }
+
+    if (curItem !== null) {
+        if (dataCnt > maxDataCnt) curItem.DATA += ` (...${dataCnt})`;
+        items.push(curItem);
     }
     
 
