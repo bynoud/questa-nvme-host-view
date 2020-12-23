@@ -23,7 +23,7 @@ const initColumnWidth = {
     "BDF": 80,
     "SRC": 60,
     "RW": 60,
-    "TYPE": 85,
+    "TYPE": 100,
     "REG_NAME/QENTRY": 100,
     "ADDR": 180,
     "NSID": 95,
@@ -36,6 +36,8 @@ const lightColors = ["#FFBABA", "#FFDCB2", "#FDFFC3", "#D1FFC7", "#A9F8FF", "#AE
 
 const textColors = {
     "REG": "#e63946",
+    "H": "#e63946",
+    "D": "#14213d",
     "__default__": "#14213d",
 }
 
@@ -130,7 +132,7 @@ function SelectColumnFilter({
     // Render a multi-select box
     return (
         <div className="FilterGroup">
-            {options.allOpt.map((option,i) => <label  key={i}>
+            {options.allOpt.map((option,i) => <label  key={i} style={{display: "block", textAlign: "left"}}>
                 <input type="checkbox" value={option}
                     checked={options.filterOpt[option]}
                     onChange={e => {
@@ -252,7 +254,7 @@ function Table({ columns, data,
                 </div>
             </div>
             </div>
-            <pre>
+            <pre style={{display: "none"}}>
             <code>{JSON.stringify(state, null, 2)}</code>
             </pre>
         </>
@@ -288,7 +290,7 @@ const NvmeHostTable = ({desc, headers, items}) => {
             getRowProps={(row) => ({
                 style: {
                     background: bgrColor[row.values["BDF"]],
-                    color: textColors[row.values["TYPE"]] || textColors["__default__"],
+                    color: textColors[row.values["SRC"]] || textColors["__default__"],
                 }
             })}
         ></Table>
