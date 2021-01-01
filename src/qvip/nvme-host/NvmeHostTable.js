@@ -44,12 +44,32 @@ const textColors = {
 const Styles = styled.div`
     padding: 1rem;
 
+    .filtered {
+        color: red;
+    }
+
+    .FilterOptions {
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        padding: 12px 16px;
+        z-index: 1;
+    }
+
     .table {
         display: inline-block;
         border-spacing: 0;
         border: 1px solid black;
         font-family: monospace;
         font-size: larger;
+
+        .stickyheader {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1000
+        }
 
         .tr {
             :last-child {
@@ -151,18 +171,19 @@ function SelectColumnFilter({
 }
 
 function PopupMultiSelectFilter({
-    column: { filterValue, setFilter, preFilteredRows, id },
+    column: { filterValue, setFilter, preFilteredRows, id, Options },
 }) {
-    // Calculate the options for filtering
-    // using the preFilteredRows
-    const options = React.useMemo(() => {
-        const options = new Set()
-        preFilteredRows.forEach(row => {
-            options.add(row.values[id])
-        })
-        const optVals = [...options.values()];
-        return {allOpt: optVals, filterOpt: optVals.reduce((obj,v) => (obj[v]=false, obj), {})}
-    }, [id, preFilteredRows])
+    // // Calculate the options for filtering
+    // // using the preFilteredRows
+    // const options = React.useMemo(() => {
+    //     const options = new Set()
+    //     preFilteredRows.forEach(row => {
+    //         options.add(row.values[id])
+    //     })
+    //     const optVals = [...options.values()];
+    //     return optVals;
+    //     // return {allOpt: optVals, filterOpt: optVals.reduce((obj,v) => (obj[v]=false, obj), {})}
+    // }, [id, preFilteredRows])
 
     const [showOpt, setShowOpt] = React.useState(false);
     let dropdownMenu = null;
@@ -177,25 +198,42 @@ function PopupMultiSelectFilter({
         // event.preventDefault();
         document.addEventListener('click', disableOpt);
     };
+
+
+    const curFilterValue = React.useMemo(() => filterValue ? [...filterValue] : [], []);
+    console.log("RenderFilter", id, filterValue, curFilterValue);
+
+    const [filterEnb, setFilterEnb] = React.useState(curFilterValue.length===0 ? false : true);
     
   
     // Render a multi-select box
     return (
         <div className="FilterGroup">
-            <button onClick={enableOpt}>Filter</button>
+            <button onClick={enableOpt} className={filterEnb?"filtered":""}>Filter</button>
             {!showOpt ? null :
             <div className="FilterOptions" ref={(element) => {dropdownMenu = element}}>
-                {options.allOpt.map((option,i) => <label  key={i} style={{display: "block", textAlign: "left"}}>
+                {Options.map((option,i) => <label  key={i} style={{display: "block", textAlign: "left"}}>
                     <input type="checkbox" value={option}
-                        checked={options.filterOpt[option]}
+                        checked={curFilterValue.includes(option)}
                         onChange={e => {
-                            options.filterOpt[option] = e.target.checked;
-                            let filterValues = options.allOpt.reduce((arr,v) => {
-                                if (options.filterOpt[v]) arr.push(v);
-                                return arr;
-                            }, []);
-                            console.log("FF", options, filterValues);
-                            setFilter(filterValues.length===0 ? undefined : filterValues);
+                            const idx = curFilterValue.indexOf(option);
+                            if (!e.target.checked && idx >= 0) {
+                                curFilterValue.splice(idx,1);
+                            }
+                            if (e.target.checked && idx < 0) {
+                                curFilterValue.push(option)
+                            }
+                            console.log("FF", Options, curFilterValue);
+                            setFilterEnb(curFilterValue.length===0 ? false : true);
+                            setFilter(curFilterValue.length===0 ? undefined : curFilterValue);
+                            // filterOpt[option] = e.target.checked;
+                            // console.log("It's change", option, e.target.checked, options);
+                            // let filterValues = options.reduce((arr,v) => {
+                            //     if (filterOpt[v]) arr.push(v);
+                            //     return arr;
+                            // }, []);
+                            // console.log("FF", options, filterValues);
+                            // setFilter(filterValues.length===0 ? undefined : filterValues);
                         }}
                     ></input>{option}
                 </label>)}
@@ -210,12 +248,12 @@ function PopupMultiSelectFilter({
 const defaultPropGetter = () => ({});
 
 
-function Table({ columns, data,
+function Table({ columns, data, bgrColor,
     // getColumnProps = (...args) => defaultPropGetter("Col", ...args),
     // getRowProps = (...args) => defaultPropGetter("Row", ...args),
     // getCellProps = (...args) => defaultPropGetter("Cell", ...args),
     getColumnProps = defaultPropGetter,
-    getRowProps = defaultPropGetter,
+    // getRowProps = defaultPropGetter,
     getCellProps = defaultPropGetter,
 }) {
     const defaultColumn = React.useMemo(
@@ -250,7 +288,16 @@ function Table({ columns, data,
         useFilters,
         useBlockLayout,
         useResizeColumns
-    )
+    );
+
+    const getRowProps = React.useCallback((row) => ({
+        style: {
+            background: bgrColor[row.values["BDF"]],
+            color: textColors[row.values["SRC"]] || textColors["__default__"],
+        }
+    }), [bgrColor, textColors]);
+
+    console.log("TableRender");
   
     return (
         <>
@@ -260,16 +307,18 @@ function Table({ columns, data,
                 </div>)}
             </div>
 
-            <button onClick={resetResizing}>Reset Resizing</button>
+            {/* <button onClick={resetResizing}>Reset Resizing</button> */}
             <div>
             <div {...getTableProps()} className="table">
-                <div style={{position:"sticky", top:0, background:"white", zIndex:1000}}>
+                <div className="stickyheader">
                 {headerGroups.map(headerGroup => (
                     <div {...headerGroup.getHeaderGroupProps()} className="tr">
                     {headerGroup.headers.map(column => (
                         <div {...column.getHeaderProps()} className="th">
                             {column.render('Header')}
+                            {/* {column.render('Filter')} */}
                             <div>{column.canFilter ? column.render('Filter') : null}</div>
+                            {/* <div style={{display:column.canFilter?"inherit":"none"}}>{column.render('Filter')}</div> */}
                             {/* Use column.getResizerProps to hook up the events correctly */}
                             <div
                                 {...column.getResizerProps()}
@@ -323,6 +372,10 @@ const NvmeHostTable = ({desc, headers, items}) => {
     }, {}));
 
     const columns = React.useMemo(() => headers.map(val => {
+        
+        const options = new Set()
+        items.forEach(item => {options.add(item[val])})
+
         return {
             Header: val,
             accessor: val,
@@ -330,8 +383,9 @@ const NvmeHostTable = ({desc, headers, items}) => {
             filter: 'includesSome',
             disableFilters: !filterableHeader[val],
             width: (val in initColumnWidth) ? initColumnWidth[val] : initColumnWidth["__default__"],
+            Options: [...options.values()],
         }
-    }), [filterableHeader, headers]);
+    }), [filterableHeader, headers, items]);
 
     const data = React.useMemo(() => items, [items]);
 
@@ -340,14 +394,11 @@ const NvmeHostTable = ({desc, headers, items}) => {
     for (let item of items) uDbf.add(item["BDF"]);
     uDbf.forEach((bdf,i) => bgrColor[bdf] = lightColors[i%lightColors.length]);
 
+    console.log("MainTableRender");
+
     return <Styles>
-        <Table columns={columns} data={data}
-            getRowProps={(row) => ({
-                style: {
-                    background: bgrColor[row.values["BDF"]],
-                    color: textColors[row.values["SRC"]] || textColors["__default__"],
-                }
-            })}
+        <Table columns={columns} data={data} bgrColor={bgrColor}
+            
         ></Table>
     </Styles>
 }
